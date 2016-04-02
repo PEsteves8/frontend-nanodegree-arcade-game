@@ -200,7 +200,7 @@ var renderHearts = function(obj) {
   for (var n = 0; n < obj.lives; n++) {
     var heartSprite = document.createElement('img');
     heartSprite.width = 30;
-    heartSprite.src = "images/heart.png";
+    heartSprite.src = "images/Heart.png";
 
     livesHTML.appendChild(heartSprite);
   }
