@@ -1,43 +1,62 @@
-// Score display
-scoreDisplay = document.createElement('h2')
-document.body.appendChild(scoreDisplay);
-var score = 0;
-scoreDisplay.innerHTML = "Score: " + score;
+var scoreHTML = document.getElementById('score');
+var introEl = document.getElementById("intro-screen");
+var statsEl = document.getElementById("stats");
+var winningScreenEl = document.getElementById("winning-screen");
+var losingScreenEl = document.getElementById("losing-screen");
 
 // Enemies our player must avoid
-var Enemy = function(x, y, speed) {
-  // Variables applied to each of our instances go here,
-  // we've provided one for you to get started
-
+var Enemy = function(x, speed) {
   // The image/sprite for our enemies, this uses
   // a helper we've provided to easily load images
   this.sprite = 'images/enemy-bug.png';
-  this.x = x;
-  this.y = y;
-  this.speed = speed;
+  this.x = this.createX();
+  this.y = this.createY();
+  this.speed = this.createSpeed();
 };
 
-// Update the enemy's position, required method for game
+// Check for collisions. In this case you input the one player object directly
+Enemy.prototype.collidedWithPlayer = function() {
+  return checkCollision(player, this);
+};
+
+// Randomly place the bug in one of three 'tracks', spread across the X axys with random speeds
+Enemy.prototype.createY = function() {
+  return (85 * (Math.floor(Math.random() * 3)) + 45);
+};
+
+Enemy.prototype.createX = function() {
+  return Math.floor((Math.random() * 400) - 100);
+};
+
+Enemy.prototype.createSpeed = function() {
+  return Math.floor((Math.random() * 150) + 100);
+};
+
+// Update the enemy's position
 // Parameter: dt, a time delta between ticks
 Enemy.prototype.update = function(dt) {
   // You should multiply any movement by the dt parameter
   // which will ensure the game runs at the same speed for
   // all computers.
+
   this.x = this.x + this.speed * dt;
   if (this.x > 500) {
     this.x = Math.floor((Math.random() * 100) - 200);
-    this.speed = Math.floor((Math.random() * 150) + 100);
-    this.y = Math.floor((Math.random() * 180) + 50);
+    this.speed = this.createSpeed();
+    this.y = this.createY();
   }
+  //check for collisions
+  if (this.hasCollidedWithPlayer()) {
+    updateAfterCollision();
+    createEnemies();
+  }
+};
 
-  if (player.x < this.x + 70 &&
+Enemy.prototype.hasCollidedWithPlayer = function() {
+  return player.x < this.x + 70 &&
     player.x + 70 > this.x &&
-    player.y < this.y + 50 &&
-    player.y + 70 > this.y) {
-    restartVars.call(player);
-    score = 0;
-    scoreDisplay.innerHTML = "Score: " + score;
-  }
+    player.y < this.y + 30 &&
+    player.y + 40 > this.y;
 };
 
 // Draw the enemy on the screen, required method for game
@@ -46,7 +65,7 @@ Enemy.prototype.render = function() {
 };
 
 
-// Now write your own player class
+// Player object
 var Player = function() {
   // Variables applied to each of our instances go here,
   // we've provided one for you to get started
@@ -54,70 +73,144 @@ var Player = function() {
   // The image/sprite for our enemies, this uses
   // a helper we've provided to easily load images
   this.sprite = 'images/char-boy.png';
-  startingX = 200;
-  startingY = 400;
-  this.x = startingX;
-  this.y = startingY;
+  this.startingX = 200;
+  this.startingY = 400;
+  this.x = this.startingX;
+  this.y = this.startingY;
+  this.startingLives = 3;
+  this.lives = this.startingLives;
+  this.score = 0;
+  this.livesSprite = 'images/heart.png';
+};
+// Every time the player respawns
+Player.prototype.restartPosition = function() {
+  this.x = this.startingX;
+  this.y = this.startingY;
+};
 
+// What happens when player loses a life.
+Player.prototype.loseLife = function() {
+  player.lives -= 1;
+  renderHearts(player);
+  player.restartPosition();
 };
 
 Player.prototype.update = function(dt) {};
 
+// Render player
 Player.prototype.render = function() {
   ctx.drawImage(Resources.get(this.sprite), this.x, this.y);
 };
 
-
-Player.prototype.handleInput = function(key) {
-    if (key === "right" && this.x < 350) {
-      this.x = this.x + 101;
-    } else if (key === "left" && this.x > 50) {
-      this.x = this.x - 101;
-    } else if (key === "down" && this.y < 350) {
-      this.y = this.y + 85;
-    } else if (key === "up" && this.y > 100) {
-      this.y = this.y - 85;
-    } else if (key === "up" && this.y < 100) {
-
-      score = score + 1;
-      scoreDisplay.innerHTML = "Score: " + score;
-      restartVars.call(this);
-
+// Everytime the players reaches the water
+Player.prototype.reachedGoal = function() {
+    if (this.score === 9) {
+      showWinningScreen();
+      restartGame();
+    } else {
+      nextLevel();
     }
+};
 
+// Handle the keys taking into accound the 'walls' and water. This way works given the simplicity of the game
+Player.prototype.handleInput = function(key) {
+  if (key === "right" && this.x < 350) {
+    this.x = this.x + 101;
+  } else if (key === "left" && this.x > 50) {
+    this.x = this.x - 101;
+  } else if (key === "down" && this.y < 350) {
+    this.y = this.y + 85;
+  } else if (key === "up" && this.y > 100) {
+    this.y = this.y - 85;
+  } else if (key === "up" && this.y < 100) {
+
+    this.reachedGoal();
   }
-  // This class requires an update(), render() and
-  // a handleInput() method.
+};
+
+// What happens when the player touches a bug
+var updateAfterCollision = function() {
+  if (player.lives === 1) {
+    showLosingScreen();
+    restartGame();
+  } else {
+    player.loseLife();
+  }
+};
+
+// Show winning screen
+var showWinningScreen = function() {
+  winningScreenEl.style.display = 'block';
+  statsEl.style.display = 'none';
+  canvas.style.display = 'none';
+};
+
+//Show losing screen
+var showLosingScreen = function() {
+  losingScreenEl.style.display = 'block';
+  statsEl.style.display = 'none';
+  canvas.style.display = 'none';
+};
 
 
-
-var restartVars = function() {
-  this.x = startingX;
-  this.y = startingY;
-  allEnemies.length = 0;
+// What happens when player passes to next level
+var nextLevel = function() {
+  enemiesQty += 1;
+  player.score = player.score + 1;
+  scoreHTML.innerHTML = player.score;
+  player.restartPosition();
   createEnemies();
-}
+};
 
-// Now instantiate your objects.
+// Restart game
+var restartGame = function() {
+  enemiesQty = startingEnemies;
+  player.score = 0;
+  player.lives = player.startingLives;
+  player.restartPosition();
+  renderHearts(player);
+  createEnemies();
+  scoreHTML.innerHTML = player.score;
+};
+
+// Now instantiate objects.
 // Place all enemy objects in an array called allEnemies
 // Place the player object in a variable called player
+
+var player = new Player();
+
 var allEnemies = [];
-
+var startingEnemies = 2;
+// The enemiesQty var increases over time
+var enemiesQty = startingEnemies;
 var createEnemies = function() {
-  for (n = 0; n < 5 + score; n++) {
-    x = Math.floor((Math.random() * 200) - 100);
-    y = Math.floor((Math.random() * 180) + 50);
-    speed = Math.floor((Math.random() * 150) + 100);
-
-    var enemy = new Enemy(x, y, speed);
+  allEnemies.length = 0;
+  for (var n = 0; n < enemiesQty; n++) {
+    var enemy = new Enemy();
     allEnemies.push(enemy);
   }
 };
 
 createEnemies();
-var player = new Player();
-// This listens for key presses and sends the keys to your
-// Player.handleInput() method. You don't need to modify this.
+
+// Deals with the rendering of the hearts (lives)
+var renderHearts = function(obj) {
+  var livesHTML = document.getElementById('lives');
+  livesHTML.innerHTML = "";
+  for (var n = 0; n < obj.lives; n++) {
+    var heartSprite = document.createElement('img');
+    heartSprite.width = 30;
+    heartSprite.src = "images/heart.png";
+
+    livesHTML.appendChild(heartSprite);
+  }
+};
+
+renderHearts(player);
+
+
+// This listens for key presses and sends the keys to
+// Player.handleInput() method.
 document.addEventListener('keyup', function(e) {
   var allowedKeys = {
     37: 'left',
@@ -128,3 +221,16 @@ document.addEventListener('keyup', function(e) {
 
   player.handleInput(allowedKeys[e.keyCode]);
 });
+
+//Add listeners to the buttons to start/restart the game
+var buttons = document.getElementsByClassName("start-button");
+for (var n = 0; n < buttons.length; n++) {
+  buttons[n].addEventListener('click', function(e) {
+    e.preventDefault();
+    winningScreenEl.style.display = 'none';
+    losingScreenEl.style.display = 'none';
+    introEl.style.display = 'none';
+    statsEl.style.display = 'block';
+    canvas.style.display = 'inline';
+  });
+}

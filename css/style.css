@@ -2,3 +2,46 @@ body {
   text-align: center;
   font-family: monospace;
 }
+
+#title {
+  font-size: 2.5em;
+  margin: 0;
+}
+
+#score-display {
+  font-size: 1.5em;
+}
+
+canvas, #stats, #losing-screen, #winning-screen {
+  display: none;
+}
+
+#intro-screen, #winning-screen, #losing-screen {
+  max-width: 600px;
+  margin: 0 auto;
+  font-size: 1.2em;
+  line-height:  2em;
+  font-weight: bold;
+  text-align: justify;
+}
+
+.message-title {
+  text-align: center;
+}
+
+#intro-screen h2{
+  text-align: center;
+}
+
+.start-button {
+  display: block;
+  margin: 0 auto;
+  padding: 10px 30px;
+  background-color: #4a9830;
+  color: white;
+  cursor: pointer;
+}
+
+#winning-images {
+  text-align: center;
+}
